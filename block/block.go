@@ -1,6 +1,10 @@
 package block
 
-import "time"
+import (
+	"time"
+
+	"github.com/portilho13/blockchain/transaction"
+)
 
 type BlockHeader struct {
 	Version         string
@@ -9,4 +13,13 @@ type BlockHeader struct {
 	CreatedAt       time.Time
 	DiffcultyTarget string
 	Nonce           string
+}
+
+type BlockBody struct {
+	Transactions []transaction.Transaction
+}
+
+type Block struct {
+	BlockHeader BlockHeader
+	BlockBody   BlockBody
 }
