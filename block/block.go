@@ -23,3 +23,7 @@ type Block struct {
 	BlockHeader BlockHeader
 	BlockBody   BlockBody
 }
+
+type Blockchain struct {
+	Blocks []Block
+}
