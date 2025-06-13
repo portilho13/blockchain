@@ -35,6 +35,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	fmt.Println(s)
+
+	var t []transaction.Transaction
+
+	t = append(t, mockTx)
+
+	m, _ := crypto.CalculateMerkleRoot(t)
+	fmt.Println(m)
 
 }

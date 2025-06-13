@@ -2,25 +2,32 @@ package crypto
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
 
 	"github.com/portilho13/blockchain/transaction"
 )
 
-func HashTransaction(t transaction.Transaction) (string, error) {
-	h := sha256.New()
+func HashTransaction(transactions ...transaction.Transaction) ([]string, error) {
+	var hashes []string
 
-	data, err := json.Marshal(t)
-	if err != nil {
-		return "", err
+	for _, t := range transactions {
+		data, err := json.Marshal(t)
+		if err != nil {
+			return nil, err
+		}
+
+		hash := sha256.Sum256(data)
+		hashes = append(hashes, hex.EncodeToString(hash[:]))
 	}
 
-	h.Write(data)
+	return hashes, nil
+}
 
-	bs := h.Sum(nil)
-
-	s := fmt.Sprintf("%x", bs)
-
-	return s, nil
+func HashPair(left, right string) string {
+	leftBytes, _ := hex.DecodeString(left)
+	rightBytes, _ := hex.DecodeString(right)
+	combined := append(leftBytes, rightBytes...)
+	hash := sha256.Sum256(combined)
+	return hex.EncodeToString(hash[:])
 }
