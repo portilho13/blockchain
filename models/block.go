@@ -7,13 +7,13 @@ import (
 )
 
 type BlockHeader struct {
-	Version         string
-	PrevHash        string
-	MerkleRoot      string
-	CreatedAt       time.Time
-	DiffcultyTarget int
-	Nonce           int
-	Hash            string
+	Version          string
+	PrevHash         string
+	MerkleRoot       string
+	CreatedAt        time.Time
+	DifficultyTarget int
+	Nonce            int
+	Hash             string
 }
 
 type BlockBody struct {

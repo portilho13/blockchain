@@ -66,7 +66,7 @@ func HashBlockHeaderWithNonce(b *models.BlockHeader) error {
 
 		b.Hash = hash
 
-		if CheckDifficulty(hash, b.DiffcultyTarget) {
+		if CheckDifficulty(hash, b.DifficultyTarget) {
 			break
 		}
 		nonce += 1
