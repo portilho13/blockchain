@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
-	"github.com/portilho13/blockchain/crypto"
+	"github.com/portilho13/blockchain/block"
 
 	"github.com/portilho13/blockchain/transaction"
 )
@@ -31,18 +28,10 @@ func main() {
 		},
 	}
 
-	s, err := crypto.HashTransaction(mockTx)
-	if err != nil {
-		log.Fatal(err)
-	}
+	bc := block.Blockchain{}
 
-	fmt.Println(s)
+	bc.AddBlock(mockTx)
 
-	var t []transaction.Transaction
-
-	t = append(t, mockTx)
-
-	m, _ := crypto.CalculateMerkleRoot(t)
-	fmt.Println(m)
+	bc.PrintBlockchain()
 
 }
