@@ -7,26 +7,38 @@ import (
 )
 
 type Connection struct {
+	ServerConnection map[string]*net.Conn
+	ClientConnection map[string]*net.Conn
 }
 
 func (c *Connection) StartServer(ip string, port int) {
 	addrString := fmt.Sprintf("%s:%d", ip, port)
 
-	conn, err := net.Listen("tcp", addrString)
+	l, err := net.Listen("tcp", addrString)
 	if err != nil {
-		log.Fatal(conn)
+		log.Fatal(err)
 	}
 
-	defer conn.Close()
+	defer l.Close()
 
 	for {
-		c, err := conn.Accept()
+		conn, err := l.Accept()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Printf("Connection From %s\n", c.RemoteAddr())
+		fmt.Printf("Connection From %s\n", conn.RemoteAddr())
+		c.ServerConnection[conn.RemoteAddr().String()] = &conn
+	}
+}
 
+func (c *Connection) StartClient(ip string, port int) {
+	addrString := fmt.Sprintf("%s:%d", ip, port)
+
+	conn, err := net.Dial("tcp", addrString)
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	c.ClientConnection[conn.LocalAddr().String()] = &conn
 }
