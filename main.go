@@ -4,6 +4,8 @@ import (
 	"github.com/portilho13/blockchain/conn"
 )
 
+const MAIN_DOMAIN = "localhost:8000"
+
 func main() {
 
 	/*
@@ -35,5 +37,5 @@ func main() {
 	*/
 	conn := conn.Connection{}
 
-	conn.StartServer("localhost", 1234)
+	conn.ResolveHosts(MAIN_DOMAIN)
 }
