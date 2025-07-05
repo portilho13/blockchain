@@ -1,6 +1,7 @@
 package conn
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -10,12 +11,14 @@ type Connection struct {
 	ServerConnection map[string]*net.Conn
 	ClientConnection map[string]*net.Conn
 	NodesIps         []string
+	ServerAddr       string
 }
 
-func (c *Connection) StartServer(ip string, port int) {
-	addrString := net.JoinHostPort(ip, fmt.Sprintf("%d", port))
+const DOMAIN_IP = "localhost:8000"
 
-	l, err := net.Listen("tcp", addrString)
+func (c *Connection) StartServer(ip string) {
+
+	l, err := net.Listen("tcp", ip)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,37 +31,53 @@ func (c *Connection) StartServer(ip string, port int) {
 			log.Fatal(err)
 		}
 
-		remoteAddr := conn.RemoteAddr()
+		buffer := make([]byte, 1024)
 
-		fmt.Printf("Connection From %s\n", conn.RemoteAddr())
-		c.ServerConnection[conn.RemoteAddr().String()] = &conn
+		n, err := conn.Read(buffer)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		go c.ConnectToSingleClient(remoteAddr.String()) // Connect as a client to the node entering the network
+		addr := string(buffer[:n])
+
+		fmt.Printf("Connection From %s\n", addr)
+		if _, exists := c.ServerConnection[addr]; !exists && c.ClientConnection[addr] == nil {
+			c.ServerConnection[addr] = &conn // Store the server-side connection
+			go c.ConnectToSingleClient(addr)
+		}
 	}
 }
 
 func (c *Connection) StartClient() {
 	for _, ip := range c.NodesIps {
-		conn, err := net.Dial("tcp", ip)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		c.ClientConnection[conn.LocalAddr().String()] = &conn
+		c.ConnectToSingleClient(ip)
 	}
 
 }
 
 func (c *Connection) ConnectToSingleClient(ip string) {
+	if _, exists := c.ClientConnection[ip]; exists { // Already connected, skip
+		return
+	}
+
 	conn, err := net.Dial("tcp", ip)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	c.ClientConnection[conn.LocalAddr().String()] = &conn
+	_, err = conn.Write([]byte(c.ServerAddr))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c.ClientConnection[ip] = &conn
 }
 
 func (c *Connection) AddIpToList(ip string) {
+
+	if ip == c.ServerAddr { // Dont add own server ip
+		return
+	}
 
 	for _, existingIP := range c.NodesIps {
 		if existingIP == ip {
@@ -69,7 +88,7 @@ func (c *Connection) AddIpToList(ip string) {
 	c.NodesIps = append(c.NodesIps, ip)
 }
 
-func (c *Connection) ResolveHosts(ip string) {
+func (c *Connection) ResolveHosts(ip string) []string {
 	addr, err := net.ResolveUDPAddr("udp4", ip)
 	if err != nil {
 		log.Fatal(err)
@@ -82,8 +101,66 @@ func (c *Connection) ResolveHosts(ip string) {
 
 	defer conn.Close()
 
-	_, err = conn.Write([]byte("0"))
+	_, err = conn.Write([]byte(c.ServerAddr))
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	buffer := make([]byte, 1024)
+
+	n, _, err := conn.ReadFromUDP(buffer)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var data []string
+
+	err = json.Unmarshal(buffer[:n], &data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return data
+}
+
+func (c *Connection) Start(ip string) {
+	c.ServerAddr = ip
+
+	c.ServerConnection = make(map[string]*net.Conn)
+	c.ClientConnection = make(map[string]*net.Conn)
+
+	ips := c.ResolveHosts(DOMAIN_IP)
+
+	for _, ip := range ips {
+		c.AddIpToList(ip)
+	}
+
+	fmt.Println(c.NodesIps)
+
+	go c.StartServer(ip)
+	if len(c.NodesIps) != 0 {
+		go c.StartClient()
+	}
+
+}
+
+func (c *Connection) PrintConnectionMap() {
+	fmt.Println("ServerConnection map:")
+	for key, val := range c.ServerConnection {
+		if val != nil {
+			fmt.Printf("Key: %s, Value: %v\n", key, *val)
+		} else {
+			fmt.Printf("Key: %s, Value: nil\n", key)
+		}
+	}
+
+	fmt.Println("ClientConnection map:")
+	for key, val := range c.ClientConnection {
+		if val != nil {
+			fmt.Printf("Key: %s, Value: %v\n", key, *val)
+		} else {
+			fmt.Printf("Key: %s, Value: nil\n", key)
+		}
+	}
+
 }

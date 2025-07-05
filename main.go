@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"time"
+
 	"github.com/portilho13/blockchain/conn"
 )
 
@@ -35,7 +39,13 @@ func main() {
 
 		bc.PrintBlockchain()
 	*/
+
+	args := os.Args
 	conn := conn.Connection{}
 
-	conn.ResolveHosts(MAIN_DOMAIN)
+	go conn.Start(args[1])
+	for {
+		fmt.Println("Running forever...")
+		time.Sleep(1 * time.Second)
+	}
 }
