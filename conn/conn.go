@@ -42,7 +42,7 @@ func (c *Connection) StartServer(ip string) {
 
 		fmt.Printf("Connection From %s\n", addr)
 		if _, exists := c.ServerConnection[addr]; !exists && c.ClientConnection[addr] == nil {
-			c.ServerConnection[addr] = &conn // Store the server-side connection
+			c.ServerConnection[addr] = &conn
 			go c.ConnectToSingleClient(addr)
 		}
 	}

@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/portilho13/blockchain/transaction"
 )
 
 type BlockHeader struct {
@@ -17,7 +15,7 @@ type BlockHeader struct {
 }
 
 type BlockBody struct {
-	Transactions []transaction.Transaction
+	Transactions []ConfirmedTransaction
 }
 
 type Block struct {

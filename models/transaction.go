@@ -1,4 +1,4 @@
-package transaction
+package models
 
 type Transaction struct {
 	TxId   string

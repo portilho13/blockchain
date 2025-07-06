@@ -7,10 +7,9 @@ import (
 	"strings"
 
 	"github.com/portilho13/blockchain/models"
-	"github.com/portilho13/blockchain/transaction"
 )
 
-func HashTransaction(transactions ...transaction.Transaction) ([]string, error) {
+func HashTransaction(transactions ...models.Transaction) ([]string, error) {
 	var hashes []string
 
 	for _, t := range transactions {

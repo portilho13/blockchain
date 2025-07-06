@@ -8,7 +8,6 @@ import (
 
 	"github.com/portilho13/blockchain/crypto"
 	"github.com/portilho13/blockchain/models"
-	"github.com/portilho13/blockchain/transaction"
 )
 
 const initialDifficulty = 4
@@ -16,16 +15,24 @@ const adjustmentInterval = 5                                // Adjust difficulty
 const targetBlockTime = 60                                  // Target: 60 seconds per block
 const targetInterval = adjustmentInterval * targetBlockTime // 300 seconds total
 const maxDifficultyChange = 7                               // Maximum difficulty change per adjustment
+const transactionsPerBlock = 5
 
 type Blockchain struct {
 	Blocks []models.Block
 }
 
-func (b *Blockchain) AddBlock(t transaction.Transaction) error {
+func (b *Blockchain) MintBlock(m *models.Mempool) error {
+	var pendingTransactions []models.PendingTransaction
+	if len(*m.Tx) > transactionsPerBlock {
+		pendingTransactions = (*m.Tx)[:transactionsPerBlock]
+	} else {
+		pendingTransactions = *m.Tx
+	}
+
 	var prevHash string
 	var difficulty int
 
-	if len(b.Blocks) == 0 {
+	if len(b.Blocks) == 0 { // If is first block
 		prevHash = strings.Repeat("0", 64)
 		difficulty = initialDifficulty
 	} else {
@@ -33,9 +40,12 @@ func (b *Blockchain) AddBlock(t transaction.Transaction) error {
 		difficulty = b.CheckDifficulty()
 	}
 
-	new_transactions := []transaction.Transaction{t}
+	var txs []models.Transaction
+	for _, tx := range pendingTransactions {
+		txs = append(txs, *tx.Tx)
+	}
 
-	merkle_root, err := crypto.CalculateMerkleRoot(new_transactions)
+	merkle_root, err := crypto.CalculateMerkleRoot(txs)
 	if err != nil {
 		return err
 	}
@@ -53,8 +63,21 @@ func (b *Blockchain) AddBlock(t transaction.Transaction) error {
 		return err
 	}
 
+	var confirmedTransactions []models.ConfirmedTransaction
+
+	for idx, tx := range pendingTransactions {
+		confirmedTx := models.ConfirmedTransaction{
+			Tx:          tx.Tx,
+			BlockHash:   bh.Hash,
+			BlockHeight: uint32(idx + 1),
+			ConfirmedAt: time.Now().UTC(),
+		}
+
+		confirmedTransactions = append(confirmedTransactions, confirmedTx)
+	}
+
 	bb := models.BlockBody{
-		Transactions: new_transactions,
+		Transactions: confirmedTransactions,
 	}
 
 	block := models.Block{
@@ -63,6 +86,12 @@ func (b *Blockchain) AddBlock(t transaction.Transaction) error {
 	}
 
 	b.Blocks = append(b.Blocks, block)
+
+	if len(*m.Tx) > transactionsPerBlock {
+		*m.Tx = (*m.Tx)[transactionsPerBlock:] // Reduce mempool
+	} else {
+		*m.Tx = nil // Mempool is empty
+	}
 
 	return nil
 }

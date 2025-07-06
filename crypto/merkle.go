@@ -1,8 +1,8 @@
 package crypto
 
-import "github.com/portilho13/blockchain/transaction"
+import "github.com/portilho13/blockchain/models"
 
-func CalculateMerkleRoot(transactions []transaction.Transaction) (string, error) {
+func CalculateMerkleRoot(transactions []models.Transaction) (string, error) {
 	level, err := HashTransaction(transactions...)
 	if err != nil {
 		return "", err
