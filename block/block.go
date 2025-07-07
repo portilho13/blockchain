@@ -21,7 +21,7 @@ type Blockchain struct {
 	Blocks []models.Block
 }
 
-func (b *Blockchain) MintBlock(m *models.Mempool) error {
+func (b *Blockchain) MintBlock(m *models.Mempool) (*models.Block, error) {
 	var pendingTransactions []models.PendingTransaction
 	if len(*m.Tx) > transactionsPerBlock {
 		pendingTransactions = (*m.Tx)[:transactionsPerBlock]
@@ -47,7 +47,7 @@ func (b *Blockchain) MintBlock(m *models.Mempool) error {
 
 	merkle_root, err := crypto.CalculateMerkleRoot(txs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bh := models.BlockHeader{
@@ -60,7 +60,7 @@ func (b *Blockchain) MintBlock(m *models.Mempool) error {
 
 	err = crypto.HashBlockHeaderWithNonce(&bh)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var confirmedTransactions []models.ConfirmedTransaction
@@ -93,7 +93,7 @@ func (b *Blockchain) MintBlock(m *models.Mempool) error {
 		*m.Tx = nil // Mempool is empty
 	}
 
-	return nil
+	return &block, nil
 }
 
 func (b *Blockchain) CheckDifficulty() int {
@@ -160,4 +160,8 @@ func (bc *Blockchain) PrintBlockchain() {
 		}
 		fmt.Println("──────────────────────────────────────────────")
 	}
+}
+
+func (b *Blockchain) Addblock(block models.Block) {
+	b.Blocks = append(b.Blocks, block)
 }

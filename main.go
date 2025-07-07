@@ -1,16 +1,19 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/portilho13/blockchain/block"
+	"github.com/portilho13/blockchain/conn"
 	"github.com/portilho13/blockchain/models"
 )
 
 const MAIN_DOMAIN = "localhost:8000"
 
 func main() {
-
 	mockTx := &models.PendingTransaction{
 		Tx: &models.Transaction{
 			TxId: "abc123def456ghi789",
@@ -33,30 +36,31 @@ func main() {
 			},
 		},
 		Received: time.Now(),
-		Fee:      1000, // satoshis
+		Fee:      1000,
 	}
 
-	// 2. Initialize blockchain and mempool
 	bc := block.Blockchain{}
 	mem := &models.Mempool{Tx: &[]models.PendingTransaction{*mockTx}}
 
-	// 3. Mint a block from mempool
-	err := bc.MintBlock(mem)
+	args := os.Args
+	conn := conn.Connection{BlockChain: &bc}
+
+	go conn.Start(args[1])
+
+	block, err := bc.MintBlock(mem)
 	if err != nil {
 		panic(err)
 	}
 
-	bc.PrintBlockchain()
+	err = conn.BroadcastBlockToAll(*block)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for {
+		fmt.Println("Running forever...")
+		time.Sleep(2 * time.Second)
 
-	/*
-		args := os.Args
-		conn := conn.Connection{}
+		//bc.PrintBlockchain()
+	}
 
-		go conn.Start(args[1])
-		for {
-			fmt.Println("Running forever...")
-			time.Sleep(1 * time.Second)
-		}
-
-	*/
 }

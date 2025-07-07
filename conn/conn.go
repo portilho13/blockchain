@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/portilho13/blockchain/block"
+	"github.com/portilho13/blockchain/models"
 )
 
 type Connection struct {
+	BlockChain       *block.Blockchain
 	ServerConnection map[string]*net.Conn
 	ClientConnection map[string]*net.Conn
 	NodesIps         []string
@@ -43,7 +47,8 @@ func (c *Connection) StartServer(ip string) {
 		fmt.Printf("Connection From %s\n", addr)
 		if _, exists := c.ServerConnection[addr]; !exists && c.ClientConnection[addr] == nil {
 			c.ServerConnection[addr] = &conn
-			go c.ConnectToSingleClient(addr)
+			go c.ConnectToSingleClient(addr) // Connect to client server as client
+			go c.HandleBlockBroadcast(&conn) // Handle received client broadcasted blocks
 		}
 	}
 }
@@ -52,7 +57,6 @@ func (c *Connection) StartClient() {
 	for _, ip := range c.NodesIps {
 		c.ConnectToSingleClient(ip)
 	}
-
 }
 
 func (c *Connection) ConnectToSingleClient(ip string) {
@@ -162,5 +166,45 @@ func (c *Connection) PrintConnectionMap() {
 			fmt.Printf("Key: %s, Value: nil\n", key)
 		}
 	}
+}
 
+func (c *Connection) BroadcastBlockToAll(b models.Block) error {
+	for sv, conn := range c.ClientConnection {
+		log.Printf("Sending block info %s to %s", b.BlockHeader.Hash, sv)
+
+		blockAsBytes, err := json.Marshal(b)
+		if err != nil {
+			return err
+		}
+
+		_, err = (*conn).Write(blockAsBytes) // Send block as bytes to all clients
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return nil
+}
+
+func (c *Connection) HandleBlockBroadcast(conn *net.Conn) error {
+	buffer := make([]byte, 1024)
+
+	n, err := (*conn).Read(buffer)
+	if err != nil {
+		return err
+	}
+
+	var b models.Block
+
+	fmt.Println("BlockInfo: ", b)
+
+	err = json.Unmarshal(buffer[:n], &b)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Received block info %s", b.BlockHeader.Hash)
+	c.BlockChain.Addblock(b)
+	c.BlockChain.PrintBlockchain()
+	return nil
 }
